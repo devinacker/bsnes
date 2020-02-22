@@ -307,8 +307,8 @@ auto SuperFamicom::board() const -> string {
 
   board.trimRight("-", 1L);
 
-  if(board.beginsWith(    "LOROM-RAM") && romSize() <= 0x200000) board.append("#A");
-  if(board.beginsWith("NEC-LOROM-RAM") && romSize() <= 0x100000) board.append("#A");
+  if(board.beginsWith(    "LOROM-RAM") && data.size()             <= 0x200000) board.append("#A");
+  if(board.beginsWith("NEC-LOROM-RAM") && (data.size() & ~0x7fff) <= 0x100000) board.append("#A");
 
   //Tengai Makyou Zero (fan translation)
   if(board.beginsWith("SPC7110-") && data.size() == 0x700000) board.prepend("EX");
@@ -434,12 +434,7 @@ auto SuperFamicom::serial() const -> string {
 
 auto SuperFamicom::romSize() const -> uint {
   //subtract appended firmware size, if firmware is present
-  if((size() &  0x7fff) ==   0x100) return size() -   0x100;
-  if((size() &  0x7fff) ==   0xc00) return size() -   0xc00;
-  if((size() &  0x7fff) ==  0x2000) return size() -  0x2000;
-  if((size() &  0xffff) ==  0xd000) return size() -  0xd000;
-  if((size() & 0x3ffff) == 0x28000) return size() - 0x28000;
-  return size();
+  return size() - firmwareRomSize();
 }
 
 auto SuperFamicom::programRomSize() const -> uint {
@@ -460,7 +455,14 @@ auto SuperFamicom::expansionRomSize() const -> uint {
 }
 
 auto SuperFamicom::firmwareRomSize() const -> uint {
-  return size() - romSize();
+  auto board = this->board();
+
+  if(board.beginsWith("GB-")      && (size() &  0x7fff) ==   0x100) return   0x100;
+  if(board.beginsWith("HITACHI-") && (size() &  0x7fff) ==   0xc00) return   0xc00;
+  if(board.beginsWith("NEC-")     && (size() &  0x7fff) ==  0x2000) return  0x2000;
+  if(board.beginsWith("EXNEC-")   && (size() &  0xffff) ==  0xd000) return  0xd000;
+  if(board.beginsWith("ARM-")     && (size() & 0x3ffff) == 0x28000) return 0x28000;
+  return 0;
 }
 
 auto SuperFamicom::ramSize() const -> uint {
